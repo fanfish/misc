@@ -149,7 +149,7 @@ public class BitCircularBuffer {
 		Random rand = new Random();
 		int j = 0;
 		for (int i = 0; i < 1000000; i++) {
-			stagingArea[j] = rand.nextInt(999999) + 1;
+			stagingArea[j] = rand.nextInt(99999999) + 1;
 			if (j == stagingArea.length - 1) {
 				Arrays.sort(stagingArea);
 				merge(stagingArea);

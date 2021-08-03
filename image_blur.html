@@ -1,0 +1,405 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+<!--
+body {
+	font-family: Arial;
+}
+
+--> /* Style the tab */
+.tab {
+	overflow: hidden;
+	border: none;
+	background-color: #f1f1f1;
+}
+
+/* Style the tab content */
+.tabcontent {
+	display: none;
+	padding: 6px 12px;
+	border: 1px solid #ccc; #
+	border-top: none;
+	-moz-border-radius: 4px 4px 0 0;
+	-webkit-border-radius: 4px 4px 0 0;
+}
+
+.etabs {
+	border: none;
+	background-color: white;
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+.tablinks {
+	display: inline-block;
+	zoom: 1;
+	color: blue;
+	font-size: 20px;
+	cursor: pointer;
+	background: #eee;
+	border: 1px solid #999;
+	border-bottom: none;
+	-moz-border-radius: 4px 4px 0 0;
+	-webkit-border-radius: 4px 4px 0 0;
+}
+
+.tablinks:hover {
+	background-color: #ddd;
+}
+
+a:link {
+	color: blue;
+	background-color: transparent;
+	text-decoration: none;
+}
+
+.tablinks.active {
+	color: red;
+}
+
+.slider-caption {
+	display: block;
+	margin: 0;
+	margin-bottom: 10px;
+	font-weight: bold;
+	font-size: 13px;
+}
+
+.slidecontainer {
+	width: 100%; /* Width of the outside container */
+}
+
+/* The slider itself */
+.slider {
+	-webkit-appearance: none; /* Override default CSS styles */
+	appearance: none;
+	width: 100%; /* Full-width */
+	height: 25px; /* Specified height */
+	background: #d3d3d3; /* Grey background */
+	outline: none; /* Remove outline */
+	opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+	-webkit-transition: .2s; /* 0.2 seconds transition on hover */
+	transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+	opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+	-webkit-appearance: none; /* Override default look */
+	appearance: none;
+	width: 25px; /* Set a specific slider handle width */
+	height: 25px; /* Slider handle height */
+	background: #04AA6D; /* Green background */
+	cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+	width: 25px; /* Set a specific slider handle width */
+	height: 25px; /* Slider handle height */
+	background: #04AA6D; /* Green background */
+	cursor: pointer; /* Cursor on hover */
+}
+
+.graybtn, .orangebtn {
+	padding: 5px 15px;
+	background: #ccc;
+	border: 0;
+	cursor: pointer;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
+	margin: 10px 0px 0px 0px;
+	color: #000;
+	font-weight: 700;
+}
+</style>
+</head>
+<body>
+	<div id="image-editor">
+		<div>
+			<label>Your image </label> <input type="file" id="imageLoader"
+				name="imageLoader" accept="image/*">
+		</div>
+		<div>
+			<div id="canvas-container" class="">
+				<canvas id="canvas" width="500" height="375"></canvas>
+			</div>
+			<div id="matrix"></div>
+		</div>
+		<div style="width: 600px">
+			<div class="tab">
+				<ul class="etabs">
+					<li class="tablinks" onclick="openCity(event, 'tab1')">--Blur--</li>
+					<li class="tablinks" onclick="openCity(event, 'tab2')">--Paris--</li>
+					<li class="tablinks" onclick="openCity(event, 'tab3')">--Tokyo--</li>
+					<li class="tablinks" onclick="openCity(event, 'tab4')">--Beijing--</li>
+					<li class="tablinks"><a href="#" class=""
+						onclick="openCity(event, 'tab5')">--Berlin--</a></li>
+				</ul>
+			</div>
+
+			<div id="tab1" class="tabcontent">
+				<div class="slider-caption">
+					standard variance <span id="standard-variance-range">1.0</span>
+				</div>
+				<div class="slidecontainer">
+					<input type="range" min="1.0" max="2.0" value="1.0" step="0.2"
+						style="width: 100%; cursor: pointer" id="standard-variance-slider"
+						oninput="handle_variance()">
+				</div>
+				<div class="slider-caption">
+					radius <span id="radius-range">1</span>
+				</div>
+				<div class="slider">
+					<input type="range" min="1" max="3" value="1" step="1"
+						class="slider" id="radius-slider" oninput="handle_radius()">
+				</div>
+				<input class="graybtn" id="blur_btn" value="confirm" type="button"
+					onclick="image_blur()">
+			</div>
+			<div id="tab2" class="tabcontent">
+				<h3>Paris</h3>
+				<p>Paris is the capital of France.</p>
+			</div>
+
+			<div id="tab3" class="tabcontent">
+				<h3>Tokyo</h3>
+				<p>Tokyo is the capital of Japan.</p>
+			</div>
+
+			<div id="tab4" class="tabcontent">
+				<h3>Beijing</h3>
+				<p>Beijing is the capital of China.</p>
+			</div>
+
+			<div id="tab5" class="tabcontent">
+				<h3>Berlin</h3>
+				<p>Berlin is the capital of German.</p>
+			</div>
+
+		</div>
+	</div>
+	
+	<script>
+		const r_channel = 0;
+		const g_channel = 1;
+		const b_channel = 2;
+		var standard_kernel_matrix;
+		weights_1w_1r = [ [ -1, 1 ], [ 0, 1 ], [ 1, 1 ], [ -1, 0 ], [ 0, 0 ],
+				[ 1, 0 ], [ -1, -1 ], [ 0, -1 ], [ 1, -1 ] ];
+		weights_1w_2r = [ [ -2, 2 ], [ -1, 2 ], [ 0, 2 ], [ 1, 2 ], [ 2, 2 ],
+				[ -2, 1 ], [ -1, 1 ], [ 0, 1 ], [ 1, 1 ], [ 2, 1 ], [ -2, 0 ],
+				[ -1, 0 ], [ 0, 0 ], [ 1, 0 ], [ 2, 0 ], [ -2, -1 ],
+				[ -1, -1 ], [ 0, -1 ], [ 1, -1 ], [ 2, -1 ], [ -2, -2 ],
+				[ -1, -2 ], [ 0, -2 ], [ 1, -2 ], [ 2, -2 ] ];
+		weights_1w_3r = [ [ -3, 3 ], [ -2, 3 ], [ -1, 3 ], [ 0, 3 ], [ 1, 3 ],
+				[ 2, 3 ], [ 3, 3 ], [ -3, 2 ], [ -2, 2 ], [ -1, 2 ], [ 0, 2 ],
+				[ 1, 2 ], [ 2, 2 ], [ 3, 2 ], [ -3, 1 ], [ -2, 1 ], [ -1, 1 ],
+				[ 0, 1 ], [ 1, 1 ], [ 2, 1 ], [ 3, 1 ], [ -3, 0 ], [ -2, 0 ],
+				[ -1, 0 ], [ 0, 0 ], [ 1, 0 ], [ 2, 0 ], [ 3, 0 ], [ -3, -1 ],
+				[ -2, -1 ], [ -1, -1 ], [ 0, -1 ], [ 1, -1 ], [ 2, -1 ],
+				[ 3, -1 ], [ -3, -2 ], [ -2, -2 ], [ -1, -2 ], [ 0, -2 ],
+				[ 1, -2 ], [ 2, -2 ], [ 3, -2 ], [ -3, -3 ], [ -2, -3 ],
+				[ -1, -3 ], [ 0, -3 ], [ 1, -3 ], [ 2, -3 ], [ 3, -3 ] ];
+
+		function openCity(evt, cityName) {
+			var i, tabcontent, tablinks;
+			tabcontent = document.getElementsByClassName("tabcontent");
+			for (i = 0; i < tabcontent.length; i++) {
+				tabcontent[i].style.display = "none";
+			}
+			tablinks = document.getElementsByClassName("tablinks");
+			for (i = 0; i < tablinks.length; i++) {
+				tablinks[i].className = tablinks[i].className.replace(
+						" active", "");
+			}
+			document.getElementById(cityName).style.display = "block";
+			evt.currentTarget.className += " active";
+
+		}
+
+		function handle_variance() {
+			var slider = document.getElementById("standard-variance-slider");
+			var output = document.getElementById("standard-variance-range");
+			output.innerHTML = slider.value;
+		}
+
+		function handle_radius() {
+			var slider = document.getElementById("radius-slider");
+			var output = document.getElementById("radius-range");
+			output.innerHTML = slider.value;
+		}
+
+		function getImgColorMatrix(pxlData, width, height) {
+			var matrix = new Array(height);
+			for (var i = 0; i < height; i++) {
+				matrix[i] = new Array(width);
+				for (var j = 0; j < width; j++) {
+					matrix[i][j] = GetPixelColor(pxlData, i, j, width);
+				}
+			}
+			return matrix;
+		}
+
+		function GetPixelColor(pxlData, x, y, width) {
+			var index = (x * width + y) * 4;
+			var pixel = {
+				r : pxlData[index],
+				g : pxlData[index + 1],
+				b : pxlData[index + 2],
+				a : pxlData[index + 3]
+			};
+			return pixel;
+		}
+
+		function getChannelMatrix(image_matrix, channel, x, y, radius) {
+			var offsets;
+			switch (radius) {
+			case 1:
+				offsets = weights_1w_1r;
+				break;
+			case 2:
+				offsets = weights_1w_2r;
+				break;
+			case 3:
+				offsets = weights_1w_3r;
+				break;
+			}
+			var matrix = new Array(offsets.length);
+			for (i = 0; i < matrix.length; i++) {
+				var x_offset = parseInt(x) + offsets[i][0];
+				var y_offset = parseInt(y) + offsets[i][1];
+				switch (channel) {
+				case 0:
+					matrix[i] = image_matrix[x_offset][y_offset].r;
+					break;
+				case 1:
+					matrix[i] = image_matrix[x_offset][y_offset].g;
+					break;
+				case 2:
+					matrix[i] = image_matrix[x_offset][y_offset].b;
+					break;
+				}
+			}
+			return matrix;
+		}
+
+		function convolution(kernel_matrix, channel_matrix) {
+			let sum = 0;
+			for (i = 0; i < kernel_matrix.length; i++) {
+				sum += kernel_matrix[i] * channel_matrix[i];
+			}
+			return Math.round(sum);
+		}
+
+		function do_blur(ctx, w, h, kernel_matrix, image_matrix, radius) {
+			var imageData = ctx.createImageData(w, h);
+			var pxlData = imageData.data;
+			for (var i = radius; i < h - radius; i++) {
+				var passed_rows = i * 4 * w;
+				for (var j = radius; j < w - radius; j++) {
+					var passed_cols = 4 * j;
+					var rc_matrix = getChannelMatrix(image_matrix, r_channel,
+							i, j, radius);
+					var gc_matrix = getChannelMatrix(image_matrix, g_channel,
+							i, j, radius);
+					var bc_matrix = getChannelMatrix(image_matrix, b_channel,
+							i, j, radius);
+					pxlData[passed_rows + passed_cols] = convolution(kernel_matrix, rc_matrix);
+					pxlData[passed_rows + passed_cols + 1] = convolution(kernel_matrix, gc_matrix);
+					pxlData[passed_rows + passed_cols + 2] = convolution(kernel_matrix, bc_matrix);
+					pxlData[passed_rows + passed_cols + 3] = image_matrix[i][j].a;
+				}
+			}
+			ctx.putImageData(imageData, 0, 0);
+		}
+
+		function image_blur() {
+			var vslider = document.getElementById("standard-variance-slider");
+			var rslider = document.getElementById("radius-slider");
+			var variance = vslider.value * vslider.value;			
+			var radius = rslider.value;			
+			var mycanvas = document.getElementById('canvas');
+			var ctx = mycanvas.getContext('2d');
+			var imageData = ctx.getImageData(0, 0, mycanvas.width,
+					mycanvas.height);
+			var pxlData = imageData.data;
+			var image_matrix = getImgColorMatrix(pxlData, mycanvas.width,
+					mycanvas.height);
+			standard_kernel_matrix = getKernelMatrix(radius, variance);
+			do_blur(ctx, mycanvas.width, mycanvas.height,
+					standard_kernel_matrix, image_matrix, parseInt(radius));
+		}
+
+		function preKernelMatrix() {
+			standard_kernel_matrix = getKernelMatrix(3, 4);
+			//console.log(standard_kernel_matrix);
+		}
+
+		function getKernelMatrix(radius, variance) {
+			if (radius == 1) {
+				return buildKernelMatrix(weights_1w_1r, variance);
+			} else if (radius == 2) {
+				return buildKernelMatrix(weights_1w_2r, variance);
+			} else {
+				return buildKernelMatrix(weights_1w_3r, variance);
+			}
+		}
+
+		function buildKernelMatrix(weights, variance) {
+			let sum = 0;
+			var kernel_matrix = new Array(weights.length);
+			for (i = 0; i < weights.length; i++) {
+				var coordinate = weights[i];
+				var weight = pointWeight(coordinate[0], coordinate[1], variance);
+				sum += weight;
+				kernel_matrix[i] = weight;
+			}
+			return standardize(kernel_matrix, sum);
+		}
+
+		function round(value, decimals) {
+			return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+		}
+
+		function pointWeight(x, y, variance) {
+			var exponent = 0 - ((x * x + y * y) / (2 * variance));
+			var weight = Math.exp(exponent) / (2 * Math.PI * variance);
+			return weight;
+		}
+
+		function standardize(kernel_matrix, sum) {
+			for (i = 0; i < kernel_matrix.length; i++) {
+				kernel_matrix[i] = round(kernel_matrix[i] / sum, 5);
+			}
+			return kernel_matrix;
+		}
+
+		let fileInput = document.getElementById('imageLoader');
+		fileInput.addEventListener('change', function(ev) {
+			if (ev.target.files) {
+				let file = ev.target.files[0];				
+				var reader = new FileReader();
+				reader.readAsDataURL(file);
+				reader.onloadend = function(e) {
+					var image = new Image();
+					image.src = e.target.result;
+					image.onload = function(ev) {
+						var canvas = document.getElementById('canvas');
+						canvas.width = image.width;
+						canvas.height = image.height;
+						var ctx = canvas.getContext('2d');
+						ctx.drawImage(image, 0, 0);
+					}
+				}
+			}
+		});
+	</script>
+</body>
+</html>
